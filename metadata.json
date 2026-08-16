@@ -1,0 +1,6 @@
+{
+  "name": "TicketVault",
+  "description": "A simple full-stack ticket management web application built with React, Express, and MongoDB.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
