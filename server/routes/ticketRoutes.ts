@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { getDbStatus, getFirestoreDb } from '../db.ts';
 import { TicketRecord, EventType } from '../models/Ticket.ts';
+import type { DocumentData } from 'firebase-admin/firestore';
 
 const router = express.Router();
 const collection = 'tickets';
@@ -12,7 +13,7 @@ function fail(res: Response, error: unknown) {
     hint: 'Check Firebase service-account environment variables and Firestore permissions.',
   });
 }
-function toTicket(id: string, data: FirebaseFirestore.DocumentData): TicketRecord {
+function toTicket(id: string, data: DocumentData): TicketRecord {
   return {
     id, eventName: String(data.eventName ?? ''), eventType: (data.eventType ?? 'Other') as EventType,
     date: String(data.date ?? ''), venue: String(data.venue ?? ''), ticketNumber: String(data.ticketNumber ?? ''),
