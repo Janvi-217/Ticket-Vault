@@ -1,77 +1,76 @@
 # TicketVault 🎟️
 
-A full-stack ticket management application built with React, Vite, Node.js, Express, and Firebase Cloud Firestore.
-
-## Stack
-- Frontend: React, Vite, Tailwind CSS
-- Backend: Node.js, Express REST API
-- Database: Firebase Cloud Firestore (Firebase Admin SDK)
+TicketVault is a personal event-ticket manager built with React, TypeScript, Vite, Firebase Authentication, and Cloud Firestore.
 
 ## Firebase setup
-1. Open the Firebase project `ticket-vault-a0426`.
-2. Create a Cloud Firestore database in the Firebase console.
-3. Open Project settings → Service accounts → Firebase Admin SDK.
-4. Generate a new private key and download the JSON file.
-5. Configure the backend environment variables using the JSON fields:
-   - `FIREBASE_PROJECT_ID` = `project_id`
-   - `FIREBASE_CLIENT_EMAIL` = `client_email`
-   - `FIREBASE_PRIVATE_KEY` = `private_key`
-6. Never commit the downloaded JSON file, a real private key, or a production `.env` file.
+1. In Firebase Console, enable **Authentication → Email/Password**.
+2. Create a **Cloud Firestore** database.
+3. Register a Firebase Web App and copy its configuration.
+4. Add the six `VITE_FIREBASE_*` variables from `.env.example` to your local `.env` file and to Netlify's environment variables.
+5. Publish the Firestore security rules shown below.
 
-A Gemini API key or Firebase Web API key is **not** a substitute for Firebase Admin service-account credentials.
+## Firestore security rules
+These rules make each signed-in user able to read and modify only their own tickets. Ticket documents live at `users/{userId}/tickets/{ticketId}`.
 
-## Environment variables
+```text
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/tickets/{ticketId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
 
-Backend host:
-| Variable | Description |
-|---|---|
-| `FIREBASE_PROJECT_ID` | Firebase project ID |
-| `FIREBASE_CLIENT_EMAIL` | Service-account client email |
-| `FIREBASE_PRIVATE_KEY` | Complete service-account private key |
-| `PORT` | Port provided by the backend host |
-| `CLIENT_URL` | Netlify site origin, used for CORS |
+      function validTicket() {
+        return request.resource.data.keys().hasAll([
+          'eventName', 'eventType', 'date', 'venue', 'ticketNumber',
+          'imageUrl', 'notes', 'favorite', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'eventName', 'eventType', 'date', 'venue', 'ticketNumber',
+          'imageUrl', 'notes', 'favorite', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.eventName is string
+        && request.resource.data.eventName.size() > 0
+        && request.resource.data.eventName.size() <= 200
+        && request.resource.data.eventType in ['Movie', 'Concert', 'Sports', 'College', 'Other']
+        && request.resource.data.date is string
+        && request.resource.data.venue is string
+        && request.resource.data.ticketNumber is string
+        && request.resource.data.imageUrl is string
+        && request.resource.data.notes is string
+        && request.resource.data.favorite is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      }
 
-Frontend (Netlify):
-| Variable | Description |
-|---|---|
-| `VITE_API_BASE_URL` | Backend public origin, e.g. `https://your-api.example.com`; do not add `/api` |
+      allow read, delete: if isOwner();
+      allow create: if isOwner() && validTicket();
+      allow update: if isOwner()
+        && validTicket()
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
 
-For `FIREBASE_PRIVATE_KEY`, store the complete key including BEGIN/END lines. If your host requires escaped newlines, use `\\n`; the backend converts them to real line breaks.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
 
-## Local development
-1. Copy `.env.example` to `.env` and fill in the Firebase Admin credentials.
-2. Run `npm install`.
-3. Run `npm run dev`.
-4. Open `http://localhost:3000`.
+## Run locally
+```bash
+npm install
+npm run dev
+```
 
-## Deployment
-
-### Backend (Render or another Node.js host)
-- Root directory: repository root
-- Build command: `npm install && npm run build:server`
-- Start command: `npm start`
-- Add the Firebase Admin variables listed above.
-- Set `CLIENT_URL` to your Netlify site URL.
-
-### Frontend (Netlify)
+## Deploy on Netlify
 - Repository: `Janvi-217/Ticket-Vault`
 - Branch: `firebase-firestore-migration`
 - Build command: `npm run build`
 - Publish directory: `dist`
-- Add `VITE_API_BASE_URL` with the backend public origin.
-- Redeploy after changing environment variables.
+- Add all six `VITE_FIREBASE_*` variables in Site configuration → Environment variables, then trigger a fresh deploy.
 
-The frontend and backend are separate deployments. Netlify hosts the Vite frontend; the Node.js host runs the Express API and connects to Firestore.
+The application is a static frontend. Firebase Authentication and Firestore are accessed directly from the browser using the Firebase Web SDK. No Express server, MongoDB, Firebase Admin service-account key, Render service, or backend URL is required.
 
-## REST API
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/tickets` | List tickets with search and filters |
-| GET | `/api/tickets/:id` | Get one ticket |
-| POST | `/api/tickets` | Create a ticket |
-| PUT | `/api/tickets/:id` | Update a ticket |
-| DELETE | `/api/tickets/:id` | Delete a ticket |
-| GET | `/api/tickets/status` | Check Firestore connection |
-| GET | `/api/health` | API health check |
-
-Ticket documents are stored in the Firestore `tickets` collection.
+**Security:** Never put Firebase Admin private keys or service-account JSON in frontend code, Netlify `VITE_*` variables, or GitHub.
