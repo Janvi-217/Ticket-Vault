@@ -1,53 +1,77 @@
 # TicketVault 🎟️
 
-A full-stack ticket management application built with React, Node.js, Express, and Firebase Cloud Firestore.
+A full-stack ticket management application built with React, Vite, Node.js, Express, and Firebase Cloud Firestore.
 
-## Tech Stack
-- Frontend: React 19, Vite, Tailwind CSS, Lucide Icons
-- Backend: Node.js and Express REST API
-- Database: Firebase Cloud Firestore
-- Server database access: Firebase Admin SDK
+## Stack
+- Frontend: React, Vite, Tailwind CSS
+- Backend: Node.js, Express REST API
+- Database: Firebase Cloud Firestore (Firebase Admin SDK)
 
-## Firebase Setup
-1. In Firebase Console, select the Ticket-Vault project and ensure Cloud Firestore is created.
-2. Open Project settings → Service accounts → Firebase Admin SDK.
-3. Generate a new private key and download the JSON file. Keep it private.
-4. Configure these environment variables on your backend host:
+## Firebase setup
+1. Open the Firebase project `ticket-vault-a0426`.
+2. Create a Cloud Firestore database in the Firebase console.
+3. Open Project settings → Service accounts → Firebase Admin SDK.
+4. Generate a new private key and download the JSON file.
+5. Configure the backend environment variables using the JSON fields:
+   - `FIREBASE_PROJECT_ID` = `project_id`
+   - `FIREBASE_CLIENT_EMAIL` = `client_email`
+   - `FIREBASE_PRIVATE_KEY` = `private_key`
+6. Never commit the downloaded JSON file, a real private key, or a production `.env` file.
 
-| Variable | Value |
+A Gemini API key or Firebase Web API key is **not** a substitute for Firebase Admin service-account credentials.
+
+## Environment variables
+
+Backend host:
+| Variable | Description |
 |---|---|
-| FIREBASE_PROJECT_ID | Project ID (ticket-vault-a0426) |
-| FIREBASE_CLIENT_EMAIL | client_email from service-account JSON |
-| FIREBASE_PRIVATE_KEY | private_key from service-account JSON |
-| PORT | Port supplied by hosting provider |
+| `FIREBASE_PROJECT_ID` | Firebase project ID |
+| `FIREBASE_CLIENT_EMAIL` | Service-account client email |
+| `FIREBASE_PRIVATE_KEY` | Complete service-account private key |
+| `PORT` | Port provided by the backend host |
+| `CLIENT_URL` | Netlify site origin, used for CORS |
 
-For FIREBASE_PRIVATE_KEY, paste the complete key including BEGIN/END lines. The server converts escaped \\n sequences to newlines.
+Frontend (Netlify):
+| Variable | Description |
+|---|---|
+| `VITE_API_BASE_URL` | Backend public origin, e.g. `https://your-api.example.com`; do not add `/api` |
 
-**Security:** Never commit the service-account JSON, private key, or production .env file to GitHub. Store credentials only in local environment variables or your backend host's secret settings.
+For `FIREBASE_PRIVATE_KEY`, store the complete key including BEGIN/END lines. If your host requires escaped newlines, use `\\n`; the backend converts them to real line breaks.
 
-## Local Development
-```bash
-npm install
-npm run dev
-```
-Create a local .env from .env.example and fill in the Firebase service-account values. Open http://localhost:3000.
+## Local development
+1. Copy `.env.example` to `.env` and fill in the Firebase Admin credentials.
+2. Run `npm install`.
+3. Run `npm run dev`.
+4. Open `http://localhost:3000`.
 
-## Production
-```bash
-npm run build
-npm start
-```
-The Express backend needs a Node.js host that runs a persistent server process. Netlify can host the frontend, but it does not run this Express server as a traditional always-on Node process without adapting it to Netlify Functions.
+## Deployment
+
+### Backend (Render or another Node.js host)
+- Root directory: repository root
+- Build command: `npm install && npm run build:server`
+- Start command: `npm start`
+- Add the Firebase Admin variables listed above.
+- Set `CLIENT_URL` to your Netlify site URL.
+
+### Frontend (Netlify)
+- Repository: `Janvi-217/Ticket-Vault`
+- Branch: `firebase-firestore-migration`
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Add `VITE_API_BASE_URL` with the backend public origin.
+- Redeploy after changing environment variables.
+
+The frontend and backend are separate deployments. Netlify hosts the Vite frontend; the Node.js host runs the Express API and connects to Firestore.
 
 ## REST API
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | /api/tickets | List tickets; supports search, status and type filters |
-| GET | /api/tickets/:id | Get one ticket |
-| POST | /api/tickets | Create a ticket |
-| PUT | /api/tickets/:id | Update a ticket |
-| DELETE | /api/tickets/:id | Delete a ticket |
-| GET | /api/tickets/status | Check Firestore connection |
-| GET | /api/health | API health check |
+| GET | `/api/tickets` | List tickets with search and filters |
+| GET | `/api/tickets/:id` | Get one ticket |
+| POST | `/api/tickets` | Create a ticket |
+| PUT | `/api/tickets/:id` | Update a ticket |
+| DELETE | `/api/tickets/:id` | Delete a ticket |
+| GET | `/api/tickets/status` | Check Firestore connection |
+| GET | `/api/health` | API health check |
 
-Ticket documents are stored in the Firestore tickets collection.
+Ticket documents are stored in the Firestore `tickets` collection.
