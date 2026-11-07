@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/tickets/{ticketId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function validTicket() {
+        return request.resource.data.keys().hasAll([
+          'eventName', 'eventType', 'date', 'venue', 'ticketNumber',
+          'imageUrl', 'notes', 'favorite', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'eventName', 'eventType', 'date', 'venue', 'ticketNumber',
+          'imageUrl', 'notes', 'favorite', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.eventName is string
+        && request.resource.data.eventName.size() > 0
+        && request.resource.data.eventName.size() <= 200
+        && request.resource.data.eventType in ['Movie', 'Concert', 'Sports', 'College', 'Other']
+        && request.resource.data.date is string
+        && request.resource.data.venue is string
+        && request.resource.data.ticketNumber is string
+        && request.resource.data.imageUrl is string
+        && request.resource.data.notes is string
+        && request.resource.data.favorite is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      }
+
+      allow read, delete: if isOwner();
+      allow create: if isOwner() && validTicket();
+      allow update: if isOwner()
+        && validTicket()
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
