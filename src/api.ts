@@ -1,6 +1,8 @@
-import { Ticket, TicketFormData, DatabaseStatus, FilterStatus, EventType } from './types.ts';
+import { Ticket, TicketFormData, DatabaseStatus, FilterStatus } from './types.ts';
 
-const API_BASE = '/api';
+// Set VITE_API_BASE_URL to your deployed backend origin, without a trailing slash.
+// Locally, the empty default calls the same-origin /api routes.
+const API_BASE = `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}/api`;
 
 export async function fetchTickets(params?: {
   search?: string;
@@ -13,17 +15,13 @@ export async function fetchTickets(params?: {
   if (params?.type && params.type !== 'All') query.set('type', params.type);
 
   const res = await fetch(`${API_BASE}/tickets?${query.toString()}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch tickets: ${res.statusText}`);
-  }
+  if (!res.ok) throw new Error(`Failed to fetch tickets: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchTicketById(id: string): Promise<Ticket> {
   const res = await fetch(`${API_BASE}/tickets/${id}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ticket: ${res.statusText}`);
-  }
+  if (!res.ok) throw new Error(`Failed to fetch ticket: ${res.statusText}`);
   return res.json();
 }
 
@@ -54,9 +52,7 @@ export async function updateTicket(id: string, ticketData: Partial<TicketFormDat
 }
 
 export async function deleteTicket(id: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`, {
-    method: 'DELETE',
-  });
+  const res = await fetch(`${API_BASE}/tickets/${id}`, { method: 'DELETE' });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `Failed to delete ticket: ${res.statusText}`);
@@ -68,20 +64,10 @@ export async function fetchDbStatus(): Promise<DatabaseStatus> {
   try {
     const res = await fetch(`${API_BASE}/tickets/status`);
     if (!res.ok) {
-      return {
-        connected: false,
-        type: 'memory',
-        message: 'Could not connect to backend server',
-        uriConfigured: false,
-      };
+      return { connected: false, type: 'unconfigured', message: 'Could not connect to backend server', uriConfigured: false };
     }
     return res.json();
   } catch {
-    return {
-      connected: false,
-      type: 'memory',
-      message: 'Server offline or unreachable',
-      uriConfigured: false,
-    };
+    return { connected: false, type: 'unconfigured', message: 'Server offline or unreachable', uriConfigured: false };
   }
 }
