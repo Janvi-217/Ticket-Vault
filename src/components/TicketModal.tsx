@@ -142,7 +142,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             </h2>
             <p className="text-xs text-slate-500">
               {mode === 'add'
-                ? 'Store your ticket information securely in MongoDB'
+                ? 'Save your ticket information securely in Firebase Firestore'
                 : 'Update event date, seat number, venue, or notes'}
             </p>
           </div>
