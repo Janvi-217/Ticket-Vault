@@ -1,73 +1,84 @@
-import { Ticket, TicketFormData, DatabaseStatus, FilterStatus } from './types.ts';
+import {
+  addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp, updateDoc,
+} from 'firebase/firestore';
+import { auth, db } from './firebase.ts';
+import type { Ticket, TicketFormData, DatabaseStatus } from './types.ts';
 
-// Set VITE_API_BASE_URL to your deployed backend origin, without a trailing slash.
-// Locally, the empty default calls the same-origin /api routes.
-const API_BASE = `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}/api`;
+function ticketsCollection() {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Please sign in to access your tickets.');
+  return collection(db, 'users', user.uid, 'tickets');
+}
 
-export async function fetchTickets(params?: {
-  search?: string;
-  status?: FilterStatus;
-  type?: string;
-}): Promise<Ticket[]> {
-  const query = new URLSearchParams();
-  if (params?.search) query.set('search', params.search);
-  if (params?.status && params.status !== 'all') query.set('status', params.status);
-  if (params?.type && params.type !== 'All') query.set('type', params.type);
+function toTicket(id: string, data: Record<string, any>): Ticket {
+  const createdAt = data.createdAt?.toDate
+    ? data.createdAt.toDate().toISOString()
+    : (data.createdAt || new Date().toISOString());
+  return {
+    id,
+    eventName: String(data.eventName ?? ''),
+    eventType: data.eventType ?? 'Other',
+    date: String(data.date ?? ''),
+    venue: String(data.venue ?? ''),
+    ticketNumber: String(data.ticketNumber ?? ''),
+    imageUrl: String(data.imageUrl ?? ''),
+    notes: String(data.notes ?? ''),
+    favorite: Boolean(data.favorite),
+    createdAt,
+  };
+}
 
-  const res = await fetch(`${API_BASE}/tickets?${query.toString()}`);
-  if (!res.ok) throw new Error(`Failed to fetch tickets: ${res.statusText}`);
-  return res.json();
+export async function fetchTickets(): Promise<Ticket[]> {
+  const snapshot = await getDocs(ticketsCollection());
+  return snapshot.docs
+    .map((item) => toTicket(item.id, item.data()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function fetchTicketById(id: string): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`);
-  if (!res.ok) throw new Error(`Failed to fetch ticket: ${res.statusText}`);
-  return res.json();
+  const snapshot = await getDocs(ticketsCollection());
+  const item = snapshot.docs.find((entry) => entry.id === id);
+  if (!item) throw new Error('Ticket not found.');
+  return toTicket(item.id, item.data());
 }
 
 export async function createTicket(ticketData: TicketFormData): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ticketData),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to create ticket: ${res.statusText}`);
-  }
-  return res.json();
+  const record = {
+    ...ticketData,
+    eventName: ticketData.eventName.trim(),
+    venue: ticketData.venue.trim(),
+    ticketNumber: ticketData.ticketNumber.trim(),
+    imageUrl: ticketData.imageUrl?.trim() || '',
+    notes: ticketData.notes?.trim() || '',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+  const result = await addDoc(ticketsCollection(), record);
+  return { ...ticketData, ...record, id: result.id, createdAt: new Date().toISOString() } as Ticket;
 }
 
 export async function updateTicket(id: string, ticketData: Partial<TicketFormData>): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ticketData),
+  const user = auth.currentUser;
+  if (!user) throw new Error('Please sign in to update tickets.');
+  await updateDoc(doc(db, 'users', user.uid, 'tickets', id), {
+    ...ticketData,
+    updatedAt: serverTimestamp(),
   });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to update ticket: ${res.statusText}`);
-  }
-  return res.json();
+  return fetchTicketById(id);
 }
 
 export async function deleteTicket(id: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to delete ticket: ${res.statusText}`);
-  }
-  return res.json();
+  const user = auth.currentUser;
+  if (!user) throw new Error('Please sign in to delete tickets.');
+  await deleteDoc(doc(db, 'users', user.uid, 'tickets', id));
+  return { success: true, message: 'Ticket deleted successfully' };
 }
 
 export async function fetchDbStatus(): Promise<DatabaseStatus> {
-  try {
-    const res = await fetch(`${API_BASE}/tickets/status`);
-    if (!res.ok) {
-      return { connected: false, type: 'unconfigured', message: 'Could not connect to backend server', uriConfigured: false };
-    }
-    return res.json();
-  } catch {
-    return { connected: false, type: 'unconfigured', message: 'Server offline or unreachable', uriConfigured: false };
-  }
+  return {
+    connected: true,
+    type: 'firestore',
+    message: 'Connected to Firebase Cloud Firestore from this browser. Your tickets are private to your signed-in account.',
+    uriConfigured: true,
+  };
 }
