@@ -1,7 +1,6 @@
 export type EventType = 'Movie' | 'Concert' | 'Sports' | 'College' | 'Other';
 
 export interface Ticket {
-  _id?: string;
   id: string;
   eventName: string;
   eventType: EventType;
@@ -29,7 +28,7 @@ export type FilterStatus = 'all' | 'upcoming' | 'past' | 'favorites';
 
 export interface DatabaseStatus {
   connected: boolean;
-  type: 'mongodb' | 'memory';
+  type: 'firestore';
   message: string;
   uriConfigured: boolean;
 }
