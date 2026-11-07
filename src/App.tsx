@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Navbar } from './components/Navbar.tsx';
+import { AIChatbot } from './components/AIChatbot.tsx';
 import { StatCards } from './components/StatCards.tsx';
 import { FilterBar } from './components/FilterBar.tsx';
 import { TicketCard } from './components/TicketCard.tsx';
@@ -340,13 +341,15 @@ export default function App() {
         )}
       </main>
 
+      <AIChatbot tickets={tickets} />
+
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white/80 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
           <div className="flex items-center space-x-2">
             <span className="font-bold text-slate-800">TicketVault</span>
             <span>•</span>
-            <span>REST API + React + Node.js + Firebase</span>
+            <span>React + Firebase + Gemini AI</span>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -357,7 +360,7 @@ export default function App() {
               Firebase Firestore Setup
             </button>
             <span>•</span>
-            <span>Zero AI dependencies</span>
+            <span>Gemini-powered AI assistant</span>
           </div>
         </div>
       </footer>
