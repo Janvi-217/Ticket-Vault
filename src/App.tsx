@@ -346,7 +346,7 @@ export default function App() {
           <div className="flex items-center space-x-2">
             <span className="font-bold text-slate-800">TicketVault</span>
             <span>•</span>
-            <span>REST API + React + Node.js + MongoDB</span>
+            <span>REST API + React + Node.js + Firebase</span>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -354,7 +354,7 @@ export default function App() {
               onClick={() => setIsDbInfoOpen(true)}
               className="hover:text-indigo-600 transition-colors font-medium"
             >
-              MongoDB Setup Guide
+              Firebase Firestore Setup
             </button>
             <span>•</span>
             <span>Zero AI dependencies</span>
