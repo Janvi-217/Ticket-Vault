@@ -102,6 +102,11 @@ Gemini model selection is in `netlify/functions/ai-assistant.mts`. The key is re
 - Firebase Admin credentials are used only in the serverless function to verify ID tokens.
 - AI results are suggestions; review extracted information and event checklists before relying on them.
 
+
+## Existing MongoDB data
+
+This code change switches the application to a new Firestore data store. It does **not** automatically copy records from an existing MongoDB database. If you already have real tickets in MongoDB, export them first and import them into the matching `users/{uid}/tickets` Firestore subcollections after deciding which Firebase account owns each record. The old demo in-memory sample tickets are not migrated.
+
 ## Academic project scope
 
 This project demonstrates React UI development, authentication flows, cloud database design, user-level authorization, Firestore CRUD, serverless API design, secret management, third-party API integration and Generative AI use cases.
