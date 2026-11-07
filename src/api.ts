@@ -1,87 +1,23 @@
-import { Ticket, TicketFormData, DatabaseStatus, FilterStatus, EventType } from './types.ts';
-
-const API_BASE = '/api';
+import type { Ticket, TicketFormData, FilterStatus } from './types';
+import * as tickets from './services/ticketService';
 
 export async function fetchTickets(params?: {
-  search?: string;
-  status?: FilterStatus;
-  type?: string;
+  search?: string; status?: FilterStatus; type?: string;
 }): Promise<Ticket[]> {
-  const query = new URLSearchParams();
-  if (params?.search) query.set('search', params.search);
-  if (params?.status && params.status !== 'all') query.set('status', params.status);
-  if (params?.type && params.type !== 'All') query.set('type', params.type);
-
-  const res = await fetch(`${API_BASE}/tickets?${query.toString()}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch tickets: ${res.statusText}`);
+  let result = await tickets.fetchTickets();
+  if (params?.search?.trim()) {
+    const term = params.search.toLowerCase().trim();
+    result = result.filter((t) => [t.eventName, t.venue, t.ticketNumber].some((v) => v.toLowerCase().includes(term)));
   }
-  return res.json();
+  if (params?.status === 'favorites') result = result.filter((t) => t.favorite);
+  if (params?.status === 'upcoming') result = result.filter((t) => new Date(t.date) >= new Date());
+  if (params?.status === 'past') result = result.filter((t) => new Date(t.date) < new Date());
+  if (params?.type && params.type !== 'All') result = result.filter((t) => t.eventType === params.type);
+  return result;
 }
 
-export async function fetchTicketById(id: string): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ticket: ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export async function createTicket(ticketData: TicketFormData): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ticketData),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to create ticket: ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export async function updateTicket(id: string, ticketData: Partial<TicketFormData>): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ticketData),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to update ticket: ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export async function deleteTicket(id: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to delete ticket: ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export async function fetchDbStatus(): Promise<DatabaseStatus> {
-  try {
-    const res = await fetch(`${API_BASE}/tickets/status`);
-    if (!res.ok) {
-      return {
-        connected: false,
-        type: 'memory',
-        message: 'Could not connect to backend server',
-        uriConfigured: false,
-      };
-    }
-    return res.json();
-  } catch {
-    return {
-      connected: false,
-      type: 'memory',
-      message: 'Server offline or unreachable',
-      uriConfigured: false,
-    };
-  }
-}
+export const fetchTicketById = tickets.fetchTicketById;
+export const createTicket = (data: TicketFormData) => tickets.createTicket(data);
+export const updateTicket = (id: string, data: Partial<TicketFormData>) => tickets.updateTicket(id, data);
+export const deleteTicket = (id: string) => tickets.deleteTicket(id);
+export const fetchDbStatus = tickets.fetchDbStatus;
