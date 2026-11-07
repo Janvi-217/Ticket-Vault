@@ -74,3 +74,24 @@ npm run dev
 The application is a static frontend. Firebase Authentication and Firestore are accessed directly from the browser using the Firebase Web SDK. No Express server, MongoDB, Firebase Admin service-account key, Render service, or backend URL is required.
 
 **Security:** Never put Firebase Admin private keys or service-account JSON in frontend code, Netlify `VITE_*` variables, or GitHub.
+
+
+## Gemini AI Assistant
+
+TicketVault includes an AI chat assistant powered by Google's Gemini API. The assistant can answer general questions and help users understand their own ticket collection, upcoming events, and favorites.
+
+### AI architecture
+- React chat interface in `src/components/AIChatbot.tsx`
+- Netlify serverless function at `netlify/functions/chat.ts`
+- Firebase Authentication ID-token verification on the server
+- Gemini Interactions API called from the server only
+- Ticket context is scoped to the currently signed-in user's browser session
+
+### Netlify environment variables
+Configure these variables in Netlify (do not commit real secrets):
+- `GEMINI_API_KEY`: Gemini API key from Google AI Studio (server-side function secret)
+- `FIREBASE_PROJECT_ID`: `ticket-vault-a0426`
+- `GEMINI_MODEL`: `gemini-3.8-flash` (optional; defaults to this model)
+- The six `VITE_FIREBASE_*` values used by the frontend Firebase Web App.
+
+Never expose the Gemini key through a `VITE_*` variable or put a real key in GitHub.
